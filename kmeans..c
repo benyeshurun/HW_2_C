@@ -8,7 +8,6 @@
 #define K_ARGUMENT 2
 #define MAX_ITER_ARGUMENT 3
 #define DEFAULT_NUM_OF_ITERS 300
-#define MAX_CHAR_AT_ONE_LINE 1000
 #define COMMA_CHAR ','
 #define END_OF_STRING '\0'
 
@@ -20,14 +19,14 @@ typedef struct {
 
 void calcDimAndNumOfVectors(int *dimension, int *numOfVectors); /* Calculate vectors dimension and number of total vectors */
 double **initVectorsArray(const int *numOfVectors, const int *dimension, char* myFile); /* Insert vectors into an array */
-Cluster *initClusters(double **vectorsArray, const int *k, const int *dimension, int listOfIndex[]); /* Initialize empty clusters array */
+Cluster *initClusters(double **vectorsArray, const int *k, const int *dimension, int kIndexes[]); /* Initialize empty clusters array */
 double vectorsNorm(const double *vec1, const double *vec2, const int *dimension); /* Calculate the norm between 2 vectors */
 int findMyCluster(double *vec, Cluster *clustersArray, const int *k, const int *dimension); /* Return the vector's closest cluster (in terms of norm) */
 void assignVectorsToClusters(double **vectorsArray, Cluster *clustersArray, const int *k, const int *numOfVectors, const int *dimension); /* For any vector assign to his closest cluster */
 int recalcCentroids(Cluster *clustersArray, const int *k, const int *dimension); /* Recalculate clusters' centroids, return number of changes */
 void initCurrCentroidAndCounter(Cluster *clustersArray, const int *k, const int *dimension); /* Set curr centroid to prev centroid and reset the counter */
 void printFinalCentroids(Cluster *clustersArray, const int *k, const int *dimension); /* Print clusters' final centroids */
-void freeMemoryVectorsClusters(double **vectorsArray, Cluster *clustersArray, const int *k); /* Free the allocated memory */
+void freeMemoryVectorsClusters(double **vectorsArray, Cluster *clustersArray, const int *k, int kIndexes[]); /* Free the allocated memory */
 void validateAndAssignInput(int argc, char **argv, int *maxIter, int *k); /* Validate and assign k and max_iter input */
 
 static int fit(int k, int maxIter, char* myFile, int dimension, int numOfVectors, int kIndexes[]) {
@@ -54,7 +53,7 @@ static int fit(int k, int maxIter, char* myFile, int dimension, int numOfVectors
     }
 
     printFinalCentroids(clustersArray, &k, &dimension);
-    freeMemoryVectorsClusters(vectorsArray, clustersArray, &k);
+    freeMemoryVectorsClusters(vectorsArray, clustersArray, &k, Kindexes);
     return 0;
 }
 
@@ -120,7 +119,6 @@ PyInit_mykmeanssp(void)
 
 
 void calcDimAndNumOfVectors(int *dimension, int *numOfVectors) {
-    char line[MAX_CHAR_AT_ONE_LINE];
     char *c;
     *dimension = 1;
     *numOfVectors = 1;
@@ -157,7 +155,7 @@ double **initVectorsArray(const int *numOfVectors, const int *dimension, char* m
     return vectorsArray;
 }
 
-Cluster *initClusters(double **vectorsArray, const int *k, const int *dimension, int listOfIndex[]) {
+Cluster *initClusters(double **vectorsArray, const int *k, const int *dimension, int kIndexes[]) {
     int i, j;
     Cluster *clustersArray;
     /* Allocate memory for clustersArray */
@@ -171,7 +169,7 @@ Cluster *initClusters(double **vectorsArray, const int *k, const int *dimension,
         clustersArray[i].counter = 0;
 
         for (j = 0; j < *dimension; ++j) {
-            clustersArray[i].currCentroid[j] = vectorsArray[listOfIndex[i]][j]; /* Assign the k vectors from the list of indexes to their corresponding clusters */
+            clustersArray[i].currCentroid[j] = vectorsArray[kIndexes[i]][j]; /* Assign the k vectors from the list of indexes to their corresponding clusters */
         }
     }
     return clustersArray;
@@ -260,7 +258,7 @@ void freeMemoryVectorsClusters(double **vectorsArray, Cluster *clustersArray, co
         free(clustersArray[i].prevCentroid);
     }
     free(clustersArray);
-
+    free(kIndexes);
     /* Free vectors */
     free(*vectorsArray);
     free(vectorsArray);
